@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+    <style>
+        body {
+            display: flex;
+            height: 100vh;
+        }
+        .middle {
+            width: 10em;
+            font-size: 1em;
+            margin: auto;
+            font-family: Courier New, Courier, monospace;
+            word-break: break-all; ;
+        }
+    </style>
+</head>
+<body>
+    <div class="middle">
+        <div id="countdown">&middot;</div>
+    </div>
+</body>
+<script>
+    window.onload = function() {
+        cd = document.getElementById('countdown');
+        chain = '';
+        for (i = 0; i < 60; i++) {
+            chain = chain + '&middot;'
+        }
+        cd.innerHTML = chain
+    }
+</script>
+</html>
