@@ -71,6 +71,8 @@
         running: false,
         seconds: 60,
         timer: 60,
+        intervalId: null,
+        youtubeId: 'E9wWBjnaEck',
     }
 
     updateOSD = () => {
@@ -89,6 +91,13 @@
             chain = chain + '&middot;'
         }
         cd.innerHTML = chain
+    }
+
+    alarm = (youtubeId) => {
+        iframe = document.createElement('iframe')
+        iframe.classList.add('middle', 'absolute', 'alarm')
+        iframe.src = `https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1`
+        document.body.appendChild(iframe);
     }
 
     document.onkeydown = (e) => {
@@ -118,10 +127,26 @@
             case 'Escape':
                 console.log('reset')
                 state.seconds = 0;
+                alarmEl = document.querySelector('.alarm');
+                if (alarmEl && alarmEl.parentNode) {
+                    alarmEl.parentNode.removeChild(alarmEl);
+                }
                 break
             case ' ':
                 console.log('start/pause')
                 state.running = !state.running;
+                if (state.running) {
+                    state.intervalId = window.setInterval(() => {
+                        state.seconds = state.seconds - 1;
+                        if (state.seconds <= 0) {
+                            alarm(state.youtubeId);
+                            clearInterval(state.intervalId);
+                        }
+                        updateTimer();
+                    }, 1000);
+                } else {
+                    clearInterval(state.intervalId);
+                }
                 break
         }
         updateOSD()
