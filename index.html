@@ -30,9 +30,22 @@
             font-weight: 900;
             font-size: 5em;
             margin: auto;
+            padding-top: 2em;
+            transition: transform 200ms ease;
+            transform-origin: bottom;
+        }
+        .hidden .osd {
+            transform: scale(2);
         }
         .osd-container {
             transition: opacity 120ms linear;
+        }
+        .shortcuts {
+            background: #eee;
+            border: 2px solid #111;
+            border-radius: 1em;
+            color: #333;
+            padding: 3em;
         }
         .hidden {
             opacity: 0;
@@ -40,9 +53,9 @@
     </style>
 </head>
 <body>
-    <div class="absolute hidden" id="usage">
+    <div class="absolute hidden usage">
         <div class="middle">
-            <dl>
+            <dl class="shortcuts">
                 <dt>0-9</dt>
                 <dd>Set seconds/minutes</dd>
                 <dt>m</dt>
@@ -69,25 +82,47 @@
     const state = {
         showUsage: false,
         running: false,
-        seconds: 60,
+        userInput: '',
+        decis: 600,
         timer: 60,
         intervalId: null,
         youtubeId: 'E9wWBjnaEck',
     }
 
+    parseUserInput = (input) => {
+        if (input.match(/(\d+)m(\d*)/)) {
+            matches = input.match(/(\d+)m(\d*)/)
+            return parseInt(matches[1]) * 600 + parseInt('0' + matches[2].slice(-2)) * 10
+        } else if (input.match(/(\d+)/)) {
+            matches = input.match(/(\d+)/)
+            return parseInt(matches[1]) * 10
+        } else {
+            console.err(`Malformed user input: ${input}`)
+        }
+    }
+
+    time = (seconds) => {
+        return seconds > 60
+        ? `${Math.floor(seconds / 60)}:${seconds%60<10?'0':''}${Math.round(seconds%60)} mintues`
+        : `${seconds} seconds`
+    }
+
     updateOSD = () => {
         console.log('update osd', state)
-        osdText = state.seconds + ' seconds';
+        osdText = time(state.decis / 10);
         osdContainer = document.querySelector('.osd-container');
         osdEl = document.querySelector('.osd');
         osdEl.innerHTML = osdText;
         osdContainer.classList.toggle('hidden', state.running);
+        usageEl = document.querySelector('.usage')
+        usageEl.classList.toggle('hidden', !state.showUsage);
     }
 
     updateTimer = () => {
+        document.title = time(state.decis / 10);
         cd = document.querySelector('.countdown');
         chain = '';
-        for (i = 0; i < state.seconds; i++) {
+        for (i = 0; i < state.decis; i++) {
             chain = chain + '&middot;'
         }
         cd.innerHTML = chain
@@ -100,17 +135,38 @@
         document.body.appendChild(iframe);
     }
 
+    reset = () => {
+        state.userInput = '';
+        alarmEl = document.querySelector('.alarm');
+        if (alarmEl && alarmEl.parentNode) {
+            alarmEl.parentNode.removeChild(alarmEl);
+        }
+    }
+
+    startStop = () => {
+        if (state.running) {
+            state.showUsage = false;
+            state.intervalId = window.setInterval(() => {
+                state.decis = state.decis - 1;
+                if (state.decis <= 0) {
+                    clearInterval(state.intervalId);
+                    alarm(state.youtubeId);
+                }
+                updateTimer();
+            }, 100);
+        } else {
+            clearInterval(state.intervalId);
+        }
+    }
+
     document.onkeydown = (e) => {
         switch (e.key) {
             case '?':
                 console.log('usage')
+                state.showUsage = !state.showUsage;
+                updateOSD();
                 break;
             case 'm':
-                console.log('Minutes')
-                if (state.seconds<60) {
-                    state.seconds = parseInt(state.seconds * 60);
-                }
-                break;
             case '0':
             case '1':
             case '2':
@@ -122,31 +178,18 @@
             case '8':
             case '9':
                 console.log('set time')
-                state.seconds = parseInt('' + state.seconds + e.key);
+                state.userInput = state.userInput + e.key;
+                state.decis = parseUserInput(state.userInput);
+                console.log(state);
                 break
             case 'Escape':
                 console.log('reset')
-                state.seconds = 0;
-                alarmEl = document.querySelector('.alarm');
-                if (alarmEl && alarmEl.parentNode) {
-                    alarmEl.parentNode.removeChild(alarmEl);
-                }
+                reset();
                 break
             case ' ':
                 console.log('start/pause')
                 state.running = !state.running;
-                if (state.running) {
-                    state.intervalId = window.setInterval(() => {
-                        state.seconds = state.seconds - 1;
-                        if (state.seconds <= 0) {
-                            alarm(state.youtubeId);
-                            clearInterval(state.intervalId);
-                        }
-                        updateTimer();
-                    }, 1000);
-                } else {
-                    clearInterval(state.intervalId);
-                }
+                startStop()
                 break
         }
         updateOSD()
