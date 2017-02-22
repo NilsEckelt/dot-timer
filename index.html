@@ -7,29 +7,130 @@
         body {
             display: flex;
             height: 100vh;
+            color: #eee;
+            background-color: #333;
+        }
+        .countdown {
+            width: 20em;
         }
         .middle {
-            width: 10em;
+            display: flex;
+            font-family: Courier New, Courier, monospace;
             font-size: 1em;
             margin: auto;
-            font-family: Courier New, Courier, monospace;
-            word-break: break-all; ;
+            word-break: break-all;
+        }
+        .absolute{
+            position: absolute;
+            height: 100vh;
+            width: 100vw;
+        }
+        .osd {
+            font-family: Open Sans, Helvetica, Verdana, Geneva, Tahoma, sans-serif;
+            font-weight: 900;
+            font-size: 5em;
+            margin: auto;
+        }
+        .osd-container {
+            transition: opacity 120ms linear;
+        }
+        .hidden {
+            opacity: 0;
         }
     </style>
 </head>
 <body>
+    <div class="absolute hidden" id="usage">
+        <div class="middle">
+            <dl>
+                <dt>0-9</dt>
+                <dd>Set seconds/minutes</dd>
+                <dt>m</dt>
+                <dd>Minutes</dd>
+                <dt>Space</dt>
+                <dd>Start/pause timer</dd>
+                <dt>Escape</dt>
+                <dd>Reset timer</dd>
+                <dt>?</dt>
+                <dd>This keyboard shortcuts</dd>
+            </dl>
+        </div>
+    </div>
+    <div class="absolute hidden osd-container" id="osd">
+        <div class="middle">
+            <span class="osd">hint</span>
+        </div>
+    </div>
     <div class="middle">
-        <div id="countdown">&middot;</div>
+        <div class="countdown">&middot;</div>
     </div>
 </body>
 <script>
-    window.onload = function() {
-        cd = document.getElementById('countdown');
+    const state = {
+        showUsage: false,
+        running: false,
+        seconds: 60,
+        timer: 60,
+    }
+
+    updateOSD = () => {
+        console.log('update osd', state)
+        osdText = state.seconds + ' seconds';
+        osdContainer = document.querySelector('.osd-container');
+        osdEl = document.querySelector('.osd');
+        osdEl.innerHTML = osdText;
+        osdContainer.classList.toggle('hidden', state.running);
+    }
+
+    updateTimer = () => {
+        cd = document.querySelector('.countdown');
         chain = '';
-        for (i = 0; i < 60; i++) {
+        for (i = 0; i < state.seconds; i++) {
             chain = chain + '&middot;'
         }
         cd.innerHTML = chain
+    }
+
+    document.onkeydown = (e) => {
+        switch (e.key) {
+            case '?':
+                console.log('usage')
+                break;
+            case 'm':
+                console.log('Minutes')
+                if (state.seconds<60) {
+                    state.seconds = parseInt(state.seconds * 60);
+                }
+                break;
+            case '0':
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+            case '5':
+            case '6':
+            case '7':
+            case '8':
+            case '9':
+                console.log('set time')
+                state.seconds = parseInt('' + state.seconds + e.key);
+                break
+            case 'Escape':
+                console.log('reset')
+                state.seconds = 0;
+                break
+            case ' ':
+                console.log('start/pause')
+                state.running = !state.running;
+                break
+        }
+        updateOSD()
+        updateTimer()
+    }
+
+    window.onload = () => {
+        updateOSD()
+        updateTimer()
     }
 </script>
 </html>
