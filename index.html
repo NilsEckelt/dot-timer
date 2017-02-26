@@ -8,10 +8,17 @@
             display: flex;
             height: 100vh;
             color: #eee;
-            background-color: #333;
+            background-color: RGBA(132, 174, 78, 1.00);
+            margin: 0;
         }
         .countdown {
+            display: flex;
+            align-content: space-around;
+            flex-wrap: wrap;
+        }
+        .minute {
             width: 40em;
+            padding: 1em;
         }
         .middle {
             display: flex;
@@ -24,15 +31,17 @@
             position: absolute;
             height: 100vh;
             width: 100vw;
+            display: flex;
+            align-items: center;
         }
         .osd {
             font-family: Open Sans, Helvetica, Verdana, Geneva, Tahoma, sans-serif;
             font-weight: 900;
             font-size: 5em;
             margin: auto;
-            padding-top: 2em;
             transition: transform 200ms ease;
             transform-origin: bottom;
+            text-shadow: 0 0 500px RGBA(0,0,0,0.5);
         }
         .hidden .osd {
             transform: scale(2);
@@ -48,16 +57,19 @@
             padding: 3em;
         }
         .youtube {
-            background: #111;
+            background: RGBA(0,0,0,0.5);
             border: none;
-            color: #aaa;
+            color: #eee;
             font-size: 5em;
             margin: auto;
-            margin-top: 2em;
             padding: .3em .5em;
+            box-shadow: 0 0 500px RGBA(0,0,0,0.5);
         }
         .hidden {
             opacity: 0;
+        }
+        .set-to-backgound {
+            filter: blur(5px);
         }
     </style>
 </head>
@@ -88,7 +100,7 @@
         </div>
     </div>
     <div class="middle">
-        <div class="countdown">&middot;</div>
+        <div class="countdown"></div>
     </div>
     <div class="absolute hidden settings" id="osd">
         <div class="middle">
@@ -100,8 +112,9 @@
     const state = {
         showUsage: false,
         running: false,
-        userInput: '3m',
-        decis: 600,
+        userInput: '',
+        initial: 1200, // deciseconds
+        current: 1200,
         intervalId: null,
         youtubeId: 'E9wWBjnaEck',
         showSettings: false,
@@ -115,7 +128,7 @@
             matches = input.match(/(\d+)/)
             return parseInt(matches[1]) * 10
         } else {
-            console.err(`Malformed user input: ${input}`)
+            console.error(`Malformed user input: ${input}`)
         }
     }
 
@@ -127,7 +140,8 @@
 
     updateOSD = () => {
         console.log('update osd', state)
-        osdText = time(state.decis / 10);
+        osdText = time(state.current / 10);
+        countdown = document.querySelector('.countdown');
         osdContainer = document.querySelector('.osd-container');
         osdEl = document.querySelector('.osd');
         osdEl.innerHTML = osdText;
@@ -138,6 +152,8 @@
         ytInput = document.querySelector('.youtube');
         ytInput.value = state.youtubeId;
         settingsEl.classList.toggle('hidden', !state.showSettings);
+        osdContainer.classList.toggle('set-to-backgound', state.showSettings);
+        countdown.classList.toggle('set-to-backgound', state.showSettings);
     }
 
     updateYoutube = () => {
@@ -146,22 +162,22 @@
         console.log('set youtube to ' + ytInput.value);
     }
 
-    updateTimer = () => {
-        document.title = time(state.decis / 10);
+    updateTimer = (initial, current) => {
+        document.title = time(current / 10);
         cd = document.querySelector('.countdown');
-        chain = '';
         i = 0;
-        while ( i < state.decis ) {
+        chain = "";
+        while ( i < state.current ) {
             i = i + 1;
-            chain += '&middot;'
-            if (i % 50 === 0) {
-                chain += '<br>'
+            chain += '&bull;'
+            if (i % 100 === 0) {
+                chain += '<br/>'
             }
             if (i % 600 === 0) {
-                chain += '<br>'
+                chain += '<br/>'
             }
         }
-        cd.innerHTML = chain
+        cd.innerHTML = chain;
     }
 
     alarm = (youtubeId) => {
@@ -173,7 +189,7 @@
 
     reset = () => {
         state.userInput = '0';
-        state.decis = parseUserInput(state.userInput);
+        state.current = parseUserInput(state.userInput);
         ytInput = document.querySelector('.youtube');
         ytInput.blur();
         alarmEl = document.querySelector('.alarm');
@@ -186,12 +202,12 @@
         if (state.running) {
             state.showUsage = false;
             state.intervalId = window.setInterval(() => {
-                state.decis = state.decis - 1;
-                if (state.decis <= 0) {
+                state.current = state.current - 1;
+                if (state.current <= 0) {
                     clearInterval(state.intervalId);
                     alarm(state.youtubeId);
                 }
-                updateTimer();
+                updateTimer(state.initial, state.current);
             }, 100);
         } else {
             clearInterval(state.intervalId);
@@ -212,7 +228,7 @@
                 break;
             case 'r':
                 console.log('reset time')
-                state.decis = parseUserInput(state.userInput);
+                state.current = parseUserInput(state.userInput);
                 updateOSD();
                 break;
             case 'm':
@@ -228,9 +244,10 @@
             case '9':
                 console.log('set time')
                 state.userInput = state.userInput + e.key;
-                state.decis = parseUserInput(state.userInput);
+                state.initial = parseUserInput(state.userInput);
+                state.current = state.initial;
                 updateOSD();
-                updateTimer();
+                updateTimer(state.initial, state.current);
                 break;
             case 'Escape':
                 console.log('reset')
@@ -250,7 +267,7 @@
 
     window.onload = () => {
         updateOSD()
-        updateTimer()
+        updateTimer(state.initial, state.current)
     }
 </script>
 </html>
